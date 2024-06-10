@@ -1,0 +1,223 @@
+;;;;;;;;;;;;;;;;;;;;;;
+;;;Setup Procedures;;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+to setup
+  clear-all
+  update-game-settings;;set info for the strategies
+  setup-turtles ;;setup the turtles and distribute them randomly
+  setup-outcome-lists ;; setup a table(dict) of lists of outcomes for each strategy
+  ;; Final edit by GONG
+  set total-cooperation 0
+  set total-betrayal 0
+  reset-ticks
+end
+
+
+to update-game-settings
+  set num-games n-games
+  set end-sequence-method sequence-end-method
+  set end-probability probability_sequence_ends
+  ifelse partner-list = true[
+    set partner-list-on true
+  ]
+  [
+    set partner-list-on false
+  ]
+
+  set strategy-scores table:make
+  table:put strategy-scores "random"  0
+  table:put strategy-scores "cooperate" 0
+  table:put strategy-scores "defect"  0
+  table:put strategy-scores "tit-for-tat" 0
+  table:put strategy-scores "unforgiving" 0
+  table:put strategy-scores "tit-for-tat-forgiveness" 0
+  table:put strategy-scores "win-stay-lose-shift" 0
+
+  set strategy-num-agents table:make
+  table:put strategy-num-agents "random"  n-random
+  table:put strategy-num-agents "cooperate" n-cooperate
+  table:put strategy-num-agents "defect"  n-defect
+  table:put strategy-num-agents "tit-for-tat" n-tit-for-tat
+  table:put strategy-num-agents "unforgiving" n-unforgiving
+  table:put strategy-num-agents "tit-for-tat-forgiveness" n-tit-for-tat-forgiveness
+  table:put strategy-num-agents "win-stay-lose-shift" n-win-stay-lose-shift
+
+  set strategy-memory-type table:make
+  table:put strategy-memory-type "random"  false
+  table:put strategy-memory-type "cooperate" false
+  table:put strategy-memory-type "defect"  false
+  table:put strategy-memory-type "tit-for-tat" true
+  table:put strategy-memory-type "unforgiving" true
+  table:put strategy-memory-type "tit-for-tat-forgiveness" true
+  table:put strategy-memory-type "win-stay-lose-shift" true
+
+  set strategy-colour table:make
+  table:put strategy-colour "random"  gray - 1
+  table:put strategy-colour "cooperate" red
+  table:put strategy-colour "defect"  blue
+  table:put strategy-colour "tit-for-tat" lime
+  table:put strategy-colour "unforgiving" turquoise - 1
+  table:put strategy-colour "tit-for-tat-forgiveness" yellow
+  table:put strategy-colour "win-stay-lose-shift" orange
+
+end
+
+
+
+;;setup the turtles and distribute them randomly
+to setup-turtles
+  make-turtles ;;create the appropriate number of turtles playing each strategy
+  setup-common-variables ;;sets the variables that all turtles share
+end
+
+;;create the appropriate number of turtles playing each strategy
+to make-turtles
+  let strategy-names table:keys strategy-num-agents ;;list of strategy names
+  foreach strategy-names [strategy-name ->
+    let num-to-create table:get strategy-num-agents strategy-name
+    let colour table:get strategy-colour strategy-name
+    let memory-needed table:get strategy-memory-type strategy-name
+    adjust-turtle-counts-for-strategy strategy-name num-to-create colour memory-needed
+  ]
+end
+
+;;this is used for creating/deleting more turtles during or before runtime.
+;; currently, it does not release during run time so this is only being used before runtime
+
+to adjust-turtle-counts-for-strategy [strategy-name desired-count colour needsMemory?]
+  let current-count count turtles with [strategy = strategy-name]
+  if current-count != desired-count [
+    ifelse desired-count > current-count [
+      ifelse needsMemory? = false[
+      create-normal-turtles-for-strategy (desired-count - current-count) strategy-name colour
+      ][
+        ifelse partner-list-on = true[
+        create-all-memory-turtles-for-strategy (desired-count - current-count) strategy-name colour
+        ][
+          create-single-memory-turtles-for-strategy (desired-count - current-count) strategy-name colour
+        ]
+      ]
+    ]  [
+      let turtles-to-release n-of (current-count - desired-count) turtles with [strategy = strategy-name]
+
+      ask turtles-to-release [release-partners]
+      ask turtles-to-release [die]
+    ]
+    table:put strategy-num-agents strategy-name desired-count
+  ]
+end
+
+to create-normal-turtles-for-strategy [num-to-create strategy-name colour]
+  create-turtles num-to-create [
+    set strategy strategy-name
+    set color colour
+    set score 0
+    set partnered? false
+    set partner nobody
+    setxy random-xcor random-ycor
+    set current-score 0
+
+  ]
+end
+to create-single-memory-turtles-for-strategy [num-to-create strategy-name colour]
+   let max-who ifelse-value (any? turtles) [ max [who] of turtles ] [ -1 ] ;;max who number before creating more
+    create-single_memory_turtles num-to-create[
+    set strategy strategy-name
+    set color colour
+    set score 0
+    set partnered? false
+    set partner nobody
+    setxy random-xcor random-ycor
+    set current-score 0
+    set partner-history false
+    set last-move-cooperate? false
+    set chance-to-forgive?   true     ;;tft forgiveness
+  ]
+   let new-turtles turtles with [who > max-who]
+  ask new-turtles[ set partner-history false]
+end
+
+to create-all-memory-turtles-for-strategy [num-to-create strategy-name colour]
+  let max-who ifelse-value (any? turtles) [ max [who] of turtles ] [ -1 ] ;;max who number before creating more
+  create-all_partner_memory_turtles num-to-create[
+    set strategy strategy-name
+    set color colour
+    set score 0
+    set partnered? false
+    set partner nobody
+    setxy random-xcor random-ycor
+    set current-score 0
+    set last-move-cooperate? false
+    set chance-to-forgive?   true     ;;tft forgiveness
+  ]
+  let new-turtles turtles with [who > max-who]
+  ask new-turtles [setup-history-lists]
+end
+
+
+to setup-outcome-lists
+  let strategy-names table:keys strategy-scores
+  ;; create table of the names of each stratagy and their index in the outcome lists
+  set outcomes-dict table:make
+  foreach strategy-names[ [x] ->
+    table:put outcomes-dict x (array:from-list n-values (length strategy-names) [0])
+  ]
+
+  ;; create table of a list for each stratagy to track win/loss with other stratagies
+  set strategy-dict table:make
+  let i 0
+  foreach strategy-names[ [x] ->
+    table:put strategy-dict x i
+    set i (i + 1)
+  ]
+
+
+end
+
+
+;;set the variables that all turtles share
+to setup-common-variables
+  ask turtles [
+    set score 0
+    set partnered? false
+    set partner nobody
+    setxy random-xcor random-ycor
+    set current-score 0
+  ]
+
+  ;; Set the variables that are common only to specific breeds
+  ask single_memory_turtles[
+    set partner-history false
+    set chance-to-forgive? true
+     set partner-history false
+    set last-move-cooperate? false    ;; start with defect wsls
+  ]
+
+  ask all_partner_memory_turtles[
+    setup-history-lists ;;initialize PARTNER-HISTORY list in all turtles
+  ]
+
+end
+
+
+;;initialize PARTNER-HISTORY list in all turtles
+;; only applies to all_partner_memory_turtles
+to setup-history-lists
+  let num-turtles count turtles
+
+  let default-history [] ;;initialize the DEFAULT-HISTORY variable to be a list
+  let default-true-list n-values num-turtles [true] ;;initialize the default-true-list variable to be a list OF BOOLEAN
+  let default-false-list n-values num-turtles [false] ;;initialize the default-false-list variable to be a list OF BOOLEAN
+
+  ;;create a list with NUM-TURTLE elements for storing partner histories
+  repeat num-turtles [ set default-history (fput false default-history) ]
+
+  ;;give each turtle a copy of this list for tracking partner histories
+  ask all_partner_memory_turtles [ set partner-history default-history
+    set chance-to-forgive-list default-true-list
+  set last-move-cooperate-list default-false-list
+  ]
+
+
+end

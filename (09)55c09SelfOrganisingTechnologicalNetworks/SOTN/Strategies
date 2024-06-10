@@ -1,0 +1,218 @@
+;;;;;;;;;;;;;;;;
+;;;Strategies;;;
+;;;;;;;;;;;;;;;;
+
+;;All the strategies are described in the Info tab.
+
+to act-randomly
+  set num-random-games num-random-games + 1
+  ifelse (random-float 1.0 < 0.5) [
+    set defect-now? false
+  ] [
+    set defect-now? true
+
+  ]
+end
+
+to act-randomly-history-update
+;;uses no history- this is just for similarity with the other strategies
+end
+
+;; Always cooperate
+to cooperate
+  set num-cooperate-games num-cooperate-games + 1
+  ;; Final edit by GONG
+  set defect-now? false
+end
+
+to cooperate-history-update
+;;uses no history- this is just for similarity with the other strategies
+end
+
+;; Always defect
+to defect
+  set num-defect-games num-defect-games + 1
+  set defect-now? true
+  ;; Final edit by GONG
+
+end
+
+to defect-history-update
+;;uses no history- this is just for similarity with the other strategies
+end
+
+;; If partner defected last time, defect. Otherwise cooperate
+;; This only applies to the single_memory_turtles
+to tit-for-tat
+  set num-tit-for-tat-games num-tit-for-tat-games + 1
+  ifelse (partner-history) [
+    ;; Final edit by GONG
+    set defect-now? true
+  ] [
+    set defect-now? false
+  ]
+end
+
+;; store the most recent action done by partner
+to tit-for-tat-history-update
+  set partner-history partner-defected?
+end
+
+;; If partner defected last time, defect. Otherwise cooperate
+;; This only applies to the all_partner_memory_turtles
+to tit-for-tat-with-list
+  set num-tit-for-tat-games num-tit-for-tat-games + 1
+  set partner-defected? item ([who] of partner) partner-history
+  ifelse (partner-defected?) [
+    set defect-now? true
+  ] [
+    set defect-now? false
+  ]
+end
+
+;; store the most recent action done by partner to the list
+to tit-for-tat-with-list-history-update
+  set partner-history
+    (replace-item ([who] of partner) partner-history partner-defected?)
+end
+
+;; If parnter ever defects, always defect
+;; This only applies to the single_memory_turtles
+to unforgiving
+  set num-unforgiving-games num-unforgiving-games + 1
+  ifelse (partner-history)[
+    set defect-now? true
+  ] [
+    set defect-now? false
+  ]
+end
+
+;; If partner defects in the past set of games, remember this
+to unforgiving-history-update
+  if partner-defected? [
+    set partner-history  partner-defected?
+  ]
+end
+
+
+;; If parnter ever defects, always defect
+;; This only applies to the all_partner_memory_turtles
+to unforgiving-with-list
+  set num-unforgiving-games num-unforgiving-games + 1
+  set partner-defected? item ([who] of partner) partner-history
+  ifelse (partner-defected?)[
+    set defect-now? true
+  ] [
+    set defect-now? false
+  ]
+end
+
+;; If partner ever defects, remember this
+to unforgiving-with-list-history-update
+  if partner-defected? [
+    set partner-history
+      (replace-item ([who] of partner) partner-history partner-defected?)
+  ]
+end
+
+;; If partner defected last time, forgive once. Otherwise cooperate
+;; This only applies to the single-memory-tit-for-tat-forgiveness turtles
+to tit-for-tat-forgiveness
+  set num-tit-for-tat-forgiveness-games num-tit-for-tat-forgiveness-games + 1
+  ifelse (partner-defected? = true) [
+    ifelse (chance-to-forgive?) [  ;; If partner defected only once or less
+      set defect-now? false  ;; Forgive and cooperate
+      set chance-to-forgive? false
+    ] [
+      set defect-now? true ;; Retaliate
+    ]
+  ]
+  [
+    set defect-now? false  ;; cooperate
+  ]
+end
+
+;; store the most recent action done by partner
+to tit-for-tat-forgiveness-history-update
+  set partner-history partner-defected?
+end
+
+;; If partner defected last time, defect. Otherwise cooperate
+;; This only applies to the all-memory-tit-for-tat-forgiveness turtles
+to tit-for-tat-forgiveness-with-list
+  set num-tit-for-tat-forgiveness-games num-tit-for-tat-forgiveness-games + 1
+  set partner-defected? item ([who] of partner) partner-history
+  set chance-to-forgive? item ([who] of partner) chance-to-forgive-list
+  ifelse (partner-defected? = true) [
+    ifelse (chance-to-forgive?) [  ;; If partner defected only once or less
+      set defect-now? false  ;; Forgive and cooperate
+      set chance-to-forgive? false
+    ] [
+      set defect-now? true ;; Retaliate
+    ]
+  ]
+  [
+    set defect-now? false  ;; cooperate
+  ]
+end
+;; store the most recent action done by partner to the list
+to tit-for-tat-forgiveness-with-list-history-update
+  set partner-history
+    (replace-item ([who] of partner) partner-history partner-defected?)
+  set chance-to-forgive-list
+    (replace-item ([who] of partner) chance-to-forgive-list chance-to-forgive?)
+end
+
+
+;; This only applies to the single-memory-win-stay-lose-shift turtles
+;; if partner cooperated last round, keep doing what you did
+;; if partner defected last time, change what you did
+to win-stay-lose-shift
+   set num-win-stay-lose-shift-games num-win-stay-lose-shift-games + 1
+
+   ifelse (partner-defected? = true)[
+      ifelse(last-move-cooperate? = true)[
+        set defect-now? true
+        set last-move-cooperate? false
+    ][
+      set defect-now? false
+      set last-move-cooperate? true
+    ]
+  ]
+  [
+    set defect-now? not last-move-cooperate? ;;partner did not defect, either we both cooperated or I talked and they didnt. Do the same as before
+  ]
+end
+
+;; store the most recent action done by partner
+to win-stay-lose-shift-history-update
+
+end
+
+
+;; This only applies to the all-memory-win-stay-lose-shift turtles
+to win-stay-lose-shift-with-list
+  set num-win-stay-lose-shift-games num-win-stay-lose-shift-games + 1
+  set partner-defected? item ([who] of partner) partner-history
+  set last-move-cooperate? item ([who] of partner) last-move-cooperate-list
+   ifelse (partner-defected? = true)[
+      ifelse(last-move-cooperate? = true)[
+        set defect-now? true
+        set last-move-cooperate? false
+    ][
+      set defect-now? false
+      set last-move-cooperate? true
+    ]
+  ]
+  [
+    set defect-now? not last-move-cooperate? ;;partner did not defect, either we both cooperated or I talked and they didnt. Do the same as before
+  ]
+end
+
+to win-stay-lose-shift-with-list-history-update
+ set partner-history
+    (replace-item ([who] of partner) partner-history partner-defected?)
+  set last-move-cooperate-list
+    (replace-item ([who] of partner) last-move-cooperate-list last-move-cooperate?)
+
+end

@@ -1,0 +1,40 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;Plotting Procedures;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;calculate the total scores of each strategy
+to do-scoring
+foreach table:keys strategy-scores [strategy-name ->
+let strategy-info table:get strategy-scores strategy-name
+let turtle-count table:get strategy-num-agents strategy-name
+let new-score calc-score strategy-name turtle-count
+
+    ;; Update the score in the dictionary
+    table:put strategy-scores strategy-name new-score
+
+]
+end
+
+;; returns the total score for a strategy if any turtles exist that are playing it
+to-report calc-score [strategy-type num-with-strategy]
+ifelse num-with-strategy > 0 [
+report (sum [ score ] of (turtles with [ strategy = strategy-type ]))
+] [
+report 0
+]
+end
+
+to-report cooperation-rate [given-strategy]
+let total-turtles-with-strategy count turtles with [strategy = given-strategy]
+if total-turtles-with-strategy > 0 [
+let total-cooperate count turtles with [strategy = given-strategy and not defect-now?]
+report total-cooperate / total-turtles-with-strategy
+]
+report 0
+end
+
+;; Final edit by GONG
+to refresh-my-plots
+plotxy ticks total-cooperation
+plotxy ticks total-betrayal
+end

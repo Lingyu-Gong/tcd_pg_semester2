@@ -1,0 +1,48 @@
+CC     = "F:\Download\Matlab2023b\sys\lcc64\lcc64\bin\lcc64.exe"
+LD     = "F:\Download\Matlab2023b\sys\lcc64\lcc64\bin\lcclnk64.exe"
+LIBCMD = "F:\Download\Matlab2023b\sys\lcc64\lcc64\bin\lcclib64.exe"
+CFLAGS = -w -dll -noregistrylookup  -c -Zp8 -DLCC_WIN64 -DMATLAB_MEX_FILE -nodeclspec  
+LDFLAGS = -s -dll -L"F:\Download\Matlab2023b\sys\lcc64\lcc64\lib64" -entry LibMain -map sfun.map 
+LIBFLAGS = 
+
+OBJECTS = \
+	"c_mexapi_version.obj"\
+	"lccstub.obj"\
+	"receiveBPSK_PLUTOSDR_cgxe.obj"\
+	"m_yO7Nb9BHgdQGUKVU9FwEjG.obj"\
+	"receiveBPSK_PLUTOSDR_cgxe_registry.obj"\
+	"signLib.obj"\
+	"receiveBPSK_PLUTOSDR_cgxe.def"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmx.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmex.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmat.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libfixedpoint.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libut.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwmathutil.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libemlrt.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwcgxert.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwcgxeooprt.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwslexec_simbridge.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwslccrt.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwstringutil.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libcovrt.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwsl_sfcn_cov_bridge.lib"\
+	"F:\Download\Matlab2023b\extern\lib\win64\microsoft\libmwdsp_halidesim.lib"\
+
+INCLUDE_PATH= -I"F:\Download\Matlab2023b\extern\include"  -I"F:\Download\Matlab2023b\simulink\include"  -I"F:\Download\Matlab2023b\rtw\c\src"  -I"E:\pgprogram\tcd_pgprogram\(10)55c26openreconfigurablenetworks\Lab\lab3\slprj\_cgxe\receivebpsk_plutosdr\src"  -I"E:\pgprogram\tcd_pgprogram\(10)55c26openreconfigurablenetworks\Lab\lab3"  -I"E:\pgprogram\tcd_pgprogram\(10)55c26OpenReconfigurableNetworks\Lab\lab3\slprj\_cprj"  -I"F:\Download\Matlab2023b\sys\lcc64\lcc64\include64"  -I"E:\pgprogram\tcd_pgprogram\(10)55c26OpenReconfigurableNetworks\Lab\lab3\slprj\_cgxe\receiveBPSK_PLUTOSDR\src"  -I"E:\pgprogram\tcd_pgprogram\(10)55c26OpenReconfigurableNetworks\Lab\lab3" 
+ 
+
+receiveBPSK_PLUTOSDR_cgxe.mexw64 : $(MAKEFILE) $(OBJECTS)
+	$(LD) $(LDFLAGS) -o receiveBPSK_PLUTOSDR_cgxe.mexw64 @receiveBPSK_PLUTOSDR_cgxe.lmko
+c_mexapi_version.obj :	"F:\Download\Matlab2023b\extern\version\c_mexapi_version.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "F:\Download\Matlab2023b\extern\version\c_mexapi_version.c"
+lccstub.obj :	"F:\Download\Matlab2023b\sys\lcc64\lcc64\mex\lccstub.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "F:\Download\Matlab2023b\sys\lcc64\lcc64\mex\lccstub.c"
+receiveBPSK_PLUTOSDR_cgxe.obj :	"receiveBPSK_PLUTOSDR_cgxe.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "receiveBPSK_PLUTOSDR_cgxe.c"
+m_yO7Nb9BHgdQGUKVU9FwEjG.obj :	"m_yO7Nb9BHgdQGUKVU9FwEjG.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "m_yO7Nb9BHgdQGUKVU9FwEjG.c"
+receiveBPSK_PLUTOSDR_cgxe_registry.obj :	"receiveBPSK_PLUTOSDR_cgxe_registry.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "receiveBPSK_PLUTOSDR_cgxe_registry.c"
+signLib.obj :	"E:\pgprogram\tcd_pgprogram\(10)55c26OpenReconfigurableNetworks\Lab\lab3\slprj\_cgxe\receiveBPSK_PLUTOSDR\src\signLib.c"
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) "E:\pgprogram\tcd_pgprogram\(10)55c26OpenReconfigurableNetworks\Lab\lab3\slprj\_cgxe\receiveBPSK_PLUTOSDR\src\signLib.c"

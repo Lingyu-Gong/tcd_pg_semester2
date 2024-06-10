@@ -1,0 +1,238 @@
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;;Runtime Procedures;;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+to go
+  clear-last-round
+  ask turtles [ partner-up ]                        ;;have turtles try to find a partner
+  let partnered-turtles turtles with [ partnered? ]
+  ask partnered-turtles [ select-action ]           ;;all partnered turtles select action
+  ask partnered-turtles [ play-a-round ]
+  increment-game-counter  ;;increment game counter
+  do-scoring
+  tick
+end
+
+to clear-last-round
+  let partnered-turtles turtles with [ partnered? ]
+  ask partnered-turtles [
+    ifelse sequence-end-method = "Fixed number" [
+	  ;; Fixed number based ending
+    if partner-game-counter >= n-games [
+
+      release-partners
+      set partner-game-counter 0  ;; Reset the interaction counter
+    ]
+    ]
+    [
+      if checked-for-end? = false[
+        ;;probability based end
+        let random-probability random-float 1.0
+        ifelse random-probability < (end-probability ) [  ;;divide by 2 because probability of game ending is when either agent fails this check
+          release-partners
+          set partner-game-counter 0  ;; Reset the interaction counter
+        ]
+        [
+          ;;to prevent both partners checking for end
+          if partnered?[
+          set checked-for-end?  true
+           ask partner [
+            set checked-for-end? true
+          ]
+          ]
+        ]
+      ]
+    ]
+  ]
+  ;;resetting end check
+   ask turtles [
+      set checked-for-end? false
+    ]
+end
+
+;;release partner and turn around to leave
+to release-partners
+  if partnered? [
+    ; If the turtle has a partner, release them, partner might have died
+    if partner != nobody [
+    ask partner [
+      set partnered? false
+      set partner nobody
+      rt 180
+      set label ""
+      if breed = single_memory_turtles[ ;;resetting chance to forgive for new partner
+        set chance-to-forgive? true
+          set last-move-cooperate? false ;;false to start next round with defect
+      ]
+
+  ]
+    ]
+  ]
+  set partnered? false
+  set partner nobody
+  rt 180
+  set label ""
+  if breed = single_memory_turtles[ ;;resetting chance to forgive for new partner
+        set chance-to-forgive? true
+       set last-move-cooperate? false
+      ]
+
+
+end
+
+;;have turtles try to find a partner
+;;Since other turtles that have already executed partner-up may have
+;;caused the turtle executing partner-up to be partnered,
+;;a check is needed to make sure the calling turtle isn't partnered.
+
+to partner-up ;;turtle procedure
+  if (not partnered?) [              ;;make sure still not partnered
+    rt (random-float 90 - random-float 90) fd 1     ;;move around randomly
+    set partner one-of (turtles-at -1 0) with [ not partnered? ]
+    if partner != nobody [              ;;if successful grabbing a partner, partner up
+      set partnered? true
+      set heading 270                   ;;face partner
+      ask partner [
+        set partnered? true
+        set partner myself
+        set heading 90
+        set partner-game-counter 0
+      ]
+    ]
+  ]
+end
+
+;;choose an action based upon the strategy being played
+to select-action ;;turtle procedure
+  if strategy = "random" [ act-randomly ]
+  if strategy = "cooperate" [ cooperate ]
+  if strategy = "defect" [ defect ]
+  if strategy = "tit-for-tat" [
+    ifelse partner-list-on = true[
+      tit-for-tat-with-list
+    ]
+    [
+      tit-for-tat
+    ]
+  ]
+  if strategy = "unforgiving" [
+    ifelse partner-list-on = true[
+      unforgiving-with-list
+    ]
+    [
+      unforgiving
+    ]
+  ]
+  if strategy = "tit-for-tat-forgiveness" [
+    ifelse partner-list-on = true[
+      tit-for-tat-forgiveness-with-list
+    ]
+    [
+      tit-for-tat-forgiveness
+    ]
+  ]
+  if strategy = "win-stay-lose-shift" [
+    ifelse partner-list-on = true[
+      win-stay-lose-shift-with-list
+    ]
+    [
+      win-stay-lose-shift
+    ]
+  ]
+
+  ;; Update total cooperation and defect counts
+  ifelse defect-now? = false[
+    set total-cooperation total-cooperation + 1
+    set cooperation-count cooperation-count + 1
+    show (word "Cooperation count for turtle " who " is now " cooperation-count)
+  ] [
+    set total-betrayal total-betrayal + 1
+    set betrayal-count betrayal-count + 1
+    show (word "Betrayal count for turtle " who " is now " betrayal-count)
+  ]
+
+
+end
+
+to play-a-round ;;turtle procedure
+  get-payoff     ;;calculate the payoff for this round
+  update-history ;;store the results for next time
+end
+
+;;calculate the payoff for this round and
+;;display a label with that payoff.
+to get-payoff
+
+  set partner-defected? [defect-now?] of partner
+  ifelse partner-defected? [
+    ifelse defect-now? [
+      set score (score + both-defect) set label both-defect  ;;win for both
+
+    ] [
+      set score (score + solo-cooperate) set label solo-cooperate  ;;win for cooperator
+    ]
+
+    ;; If the partner defects, we always win
+    let partner-strategy [strategy] of partner
+    let ptr-strat-idx (table:get strategy-dict partner-strategy)  ;; get the index of the partners strategy
+    array:set (table:get outcomes-dict strategy) ptr-strat-idx ((array:item (table:get outcomes-dict strategy) ptr-strat-idx) + 1)  ;; increment the number at this index by 1
+  ] [
+    ifelse defect-now? [
+      set score (score + solo-defect) set label solo-defect  ;; loss for defector
+    ] [
+      set score (score + both-cooperate) set label both-cooperate ;;loss for both
+    ]
+
+    ;; If partner Cooperates, we always lose
+    let partner-strategy [strategy] of partner
+    let ptr-strat-idx (table:get strategy-dict partner-strategy)  ;; get index of the partners strategy
+    array:set (table:get outcomes-dict strategy) ptr-strat-idx ((array:item (table:get outcomes-dict strategy) ptr-strat-idx) - 1)  ;; increment the number at this index by 1
+  ]
+
+end
+
+;;increments counter for games against partner
+to increment-game-counter
+   let partnered-turtles turtles with [ partnered? ]
+  ask partnered-turtles [
+    set partner-game-counter (partner-game-counter + 1)
+  ]
+end
+;;update PARTNER-HISTORY based upon the strategy being played
+to update-history
+  if strategy = "random" [ act-randomly-history-update ]
+  if strategy = "cooperate" [ cooperate-history-update ]
+  if strategy = "defect" [ defect-history-update ]
+  if strategy = "tit-for-tat" [
+    ifelse partner-list-on = true[
+      tit-for-tat-with-list-history-update
+    ]
+    [
+      tit-for-tat-history-update
+    ]
+  ]
+  if strategy = "unforgiving" [
+    ifelse partner-list-on = true[
+      unforgiving-with-list-history-update
+    ]
+    [
+      unforgiving-history-update
+    ]
+  ]
+  if strategy = "tit-for-tat-forgiveness" [
+    ifelse partner-list-on = true[
+      tit-for-tat-forgiveness-with-list-history-update
+    ]
+    [
+      tit-for-tat-forgiveness-history-update
+    ]
+  ]
+  if strategy = "win-stay-lose-shift" [
+    ifelse partner-list-on = true[
+      win-stay-lose-shift-with-list-history-update
+    ]
+    [
+      win-stay-lose-shift-history-update
+    ]
+  ]
+end
